@@ -1,0 +1,7 @@
+# description: Create wic installable image
+
+part /boot --source bootimg-efi --sourceparams="loader=systemd-boot,title=install,label=install-efi,initrd=${INITRD_IMAGE_LIVE}-${MACHINE}.${INITRAMFS_FSTYPES}" --ondisk sda --label install --active --align 1024 --use-uuid
+
+part / --source installer-partition --ondisk sda --fstype=ext4 --label image --use-uuid
+
+bootloader --ptable gpt --timeout=5 --append="rootwait console=ttyS0,115200 console=tty0"
