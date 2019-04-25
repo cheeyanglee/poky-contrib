@@ -72,9 +72,14 @@ class BootimgEFIPlugin(SourcePlugin):
             grubefi_conf += "menuentry '%s'{\n" % (title if title else "boot")
 
             kernel = "/bzImage"
+            label = source_params.get('label')
 
-            grubefi_conf += "linux %s root=%s rootwait %s\n" \
-                % (kernel, creator.rootdev, bootloader.append)
+            if label == "install-efi":
+                grubefi_conf += "linux %s LABEL=%s rootwait %s\n" \
+                    % (kernel, label, bootloader.append)
+            else:
+                grubefi_conf += "linux %s root=%s rootwait %s\n" \
+                    % (kernel, creator.rootdev, bootloader.append)
 
             if initrd:
                grubefi_conf += "initrd /%s\n" % initrd
@@ -140,12 +145,17 @@ class BootimgEFIPlugin(SourcePlugin):
             # Create systemd-boot configuration using parameters from wks file
             kernel = "/bzImage"
             title = source_params.get('title')
-
+            label = source_params.get('label')
             boot_conf = ""
             boot_conf += "title %s\n" % (title if title else "boot")
             boot_conf += "linux %s\n" % kernel
-            boot_conf += "options LABEL=Boot root=%s %s\n" % \
-                             (creator.rootdev, bootloader.append)
+
+            if label == "install-efi":
+                boot_conf += "options LABEL=%s %s\n" % \
+                                (label, bootloader.append)
+            else:
+                boot_conf += "options LABEL=Boot root=%s %s\n" % \
+                                 (creator.rootdev, bootloader.append)
 
             if initrd:
                 boot_conf += "initrd /%s\n" % initrd
