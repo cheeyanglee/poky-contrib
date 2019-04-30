@@ -102,8 +102,14 @@ python () {
                 # a variable and let the metadata deal with the deps.
                 d.setVar('_WKS_TEMPLATE', body)
                 bb.build.addtask('do_write_wks_template', 'do_image_wic', None, d)
+        d.appendVarFlag('do_image_wic', 'depends', ' %s:do_image_complete' % d.getVar('INITRD_IMAGE_LIVE'))
         bb.build.addtask('do_image_wic', 'do_image_complete', None, d)
 }
+
+LIVE_ROOTFS_TYPE ?= "ext4"
+INITRD_IMAGE_LIVE ?= "${MLPREFIX}core-image-minimal-initramfs"
+INITRD_LIVE ?= "${DEPLOY_DIR_IMAGE}/${INITRD_IMAGE_LIVE}-${MACHINE}.${INITRAMFS_FSTYPES}"
+IMAGE_TYPEDEP_wic = "${LIVE_ROOTFS_TYPE}"
 
 #
 # Write environment variables used by wic
