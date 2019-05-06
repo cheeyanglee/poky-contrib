@@ -27,6 +27,7 @@
 import logging
 import os
 import uuid
+import json
 
 from wic import WicError
 from wic.misc import exec_cmd, exec_native_cmd, get_bitbake_var
@@ -170,10 +171,15 @@ class Partition():
 
         srcparams_dict = {}
         if self.sourceparams:
-            # Split sourceparams string of the form key1=val1[,key2=val2,...]
-            # into a dict.  Also accepts valueless keys i.e. without =
-            splitted = self.sourceparams.split(',')
-            srcparams_dict = dict(par.split('=', 1) for par in splitted if par)
+            # check sourceparams format, parse to JSON if writen in JSON format
+            # else remain in original format
+            try:
+                srcparams_dict = json.loads(self.sourceparams)
+            except:
+                # Split sourceparams string of the form key1=val1[,key2=val2,...]
+                # into a dict.  Also accepts valueless keys i.e. without =
+                splitted = self.sourceparams.split(',')
+                srcparams_dict = dict(par.split('=', 1) for par in splitted if par)
 
         plugin = PluginMgr.get_plugins('source')[self.source]
         plugin.do_configure_partition(self, srcparams_dict, creator,
