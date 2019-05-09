@@ -49,6 +49,14 @@ class BootimgEFIPlugin(SourcePlugin):
         """
         Create loader-specific (grub-efi) config
         """
+        bootimg_dir = get_bitbake_var("DEPLOY_DIR_IMAGE")
+        if not bootimg_dir:
+            raise WicError("Couldn't find DEPLOY_DIR_IMAGE, exiting")
+
+        kernel = get_bitbake_var("KERNEL_IMAGETYPE")
+        if not kernel:
+            kernel = "bzImage"
+
         configfile = creator.ks.bootloader.configfile
         custom_cfg = None
         if configfile:
@@ -62,43 +70,52 @@ class BootimgEFIPlugin(SourcePlugin):
                 raise WicError("configfile is specified but failed to "
                                "get it from %s." % configfile)
 
-        initrd = source_params.get('initrd')
-
-        if initrd:
-            bootimg_dir = get_bitbake_var("DEPLOY_DIR_IMAGE")
-            if not bootimg_dir:
-                raise WicError("Couldn't find DEPLOY_DIR_IMAGE, exiting")
-
-            cp_cmd = "cp %s/%s %s" % (bootimg_dir, initrd, hdddir)
-            exec_cmd(cp_cmd, True)
-        else:
-            logger.debug("Ignoring missing initrd")
+            initrd = source_params.get('initrd')
+            if initrd:
+                cp_cmd = "cp %s/%s %s" % (bootimg_dir, initrd, hdddir)
+                exec_cmd(cp_cmd, True)
+            else:
+                logger.debug("Ignoring missing initrd")
 
         if not custom_cfg:
             # Create grub configuration using parameters from wks file
             bootloader = creator.ks.bootloader
-            title = source_params.get('title')
+
+            if source_params.get('config'):
+                multiboot_config = source_params.get('config')
+            else:
+                multiboot_config = [source_params]
 
             grubefi_conf = ""
             grubefi_conf += "serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1\n"
             grubefi_conf += "default=boot\n"
             grubefi_conf += "timeout=%s\n" % bootloader.timeout
-            grubefi_conf += "menuentry '%s'{\n" % (title if title else "boot")
 
-            kernel = "/bzImage"
-            label = source_params.get('label')
+            # populate menu entry for each configuration
+            for conf in multiboot_config:
+                grubefi_conf += "menuentry '%s'{\n" % conf.get('title') if conf.get('title') else "Boot"
 
-            if label == "install-efi":
-                grubefi_conf += "linux %s LABEL=%s rootwait %s\n" \
-                    % (kernel, label, bootloader.append)
-            else:
-                grubefi_conf += "linux %s root=%s rootwait %s\n" \
-                    % (kernel, creator.rootdev, bootloader.append)
+                conf_kernel = conf.get('kernel') if conf.get('kernel') else kernel
+                label = conf.get('label')
 
-            if initrd:
-               grubefi_conf += "initrd /%s\n" % initrd
+                install_cmd = "install -m 0644 %s/%s %s/%s" % \
+                    (bootimg_dir, conf_kernel, hdddir, conf_kernel)
+                exec_cmd(install_cmd)
 
-            grubefi_conf += "}\n"
+                if label == "install-efi":
+                    grubefi_conf += "linux /%s LABEL=%s rootwait %s\n" \
+                        % (conf_kernel, label, bootloader.append)
+                else:
+                    grubefi_conf += "linux /%s root=%s rootwait %s\n" \
+                        % (conf_kernel, creator.rootdev, bootloader.append)
+
+                initrd = conf.get('initrd')
+                if initrd:
+                    cp_cmd = "cp %s/%s %s" % (bootimg_dir, initrd, hdddir)
+                    exec_cmd(cp_cmd, True)
+                    grubefi_conf += "initrd /%s\n" % initrd
+
+                grubefi_conf += "}\n"
 
         logger.debug("Writing grubefi config %s/hdd/boot/EFI/BOOT/grub.cfg",
                      cr_workdir)
@@ -106,11 +123,20 @@ class BootimgEFIPlugin(SourcePlugin):
         cfg.write(grubefi_conf)
         cfg.close()
 
+
     @classmethod
     def do_configure_systemdboot(cls, hdddir, creator, cr_workdir, source_params):
         """
         Create loader-specific systemd-boot/gummiboot config
         """
+        bootimg_dir = get_bitbake_var("DEPLOY_DIR_IMAGE")
+        if not bootimg_dir:
+            raise WicError("Couldn't find DEPLOY_DIR_IMAGE, exiting")
+
+        kernel = get_bitbake_var("KERNEL_IMAGETYPE")
+        if not kernel:
+            kernel = "bzImage"
+
         install_cmd = "install -d %s/loader" % hdddir
         exec_cmd(install_cmd)
 
@@ -122,19 +148,6 @@ class BootimgEFIPlugin(SourcePlugin):
         loader_conf = ""
         loader_conf += "default boot\n"
         loader_conf += "timeout %d\n" % bootloader.timeout
-
-        initrd = source_params.get('initrd')
-
-        if initrd:
-            # obviously we need to have a common common deploy var
-            bootimg_dir = get_bitbake_var("DEPLOY_DIR_IMAGE")
-            if not bootimg_dir:
-                raise WicError("Couldn't find DEPLOY_DIR_IMAGE, exiting")
-
-            cp_cmd = "cp %s/%s %s" % (bootimg_dir, initrd, hdddir)
-            exec_cmd(cp_cmd, True)
-        else:
-            logger.debug("Ignoring missing initrd")
 
         logger.debug("Writing systemd-boot config "
                      "%s/hdd/boot/loader/loader.conf", cr_workdir)
@@ -155,30 +168,59 @@ class BootimgEFIPlugin(SourcePlugin):
                 raise WicError("configfile is specified but failed to "
                                "get it from %s.", configfile)
 
-        if not custom_cfg:
-            # Create systemd-boot configuration using parameters from wks file
-            kernel = "/bzImage"
-            title = source_params.get('title')
-            label = source_params.get('label')
-            boot_conf = ""
-            boot_conf += "title %s\n" % (title if title else "boot")
-            boot_conf += "linux %s\n" % kernel
-
-            if label == "install-efi":
-                boot_conf += "options LABEL=%s %s\n" % \
-                                (label, bootloader.append)
-            else:
-                boot_conf += "options LABEL=Boot root=%s %s\n" % \
-                                 (creator.rootdev, bootloader.append)
+            initrd = source_params.get('initrd')
 
             if initrd:
-                boot_conf += "initrd /%s\n" % initrd
+                cp_cmd = "cp %s/%s %s" % (bootimg_dir, initrd, hdddir)
+                exec_cmd(cp_cmd, True)
+            else:
+                logger.debug("Ignoring missing initrd")
 
-        logger.debug("Writing systemd-boot config "
-                     "%s/hdd/boot/loader/entries/boot.conf", cr_workdir)
-        cfg = open("%s/hdd/boot/loader/entries/boot.conf" % cr_workdir, "w")
-        cfg.write(boot_conf)
-        cfg.close()
+            logger.debug("Writing systemd-boot config "
+                         "%s/hdd/boot/loader/entries/boot.conf", cr_workdir)
+            cfg = open("%s/hdd/boot/loader/entries/boot.conf" % cr_workdir, "w")
+            cfg.write(boot_conf)
+            cfg.close()
+
+        if not custom_cfg:
+            # Create systemd-boot configuration using parameters from wks file
+            if source_params.get('config'):
+                multiboot_config = source_params.get('config')
+            else:
+                multiboot_config = [source_params]
+
+            # populate each configuration file
+            for conf in multiboot_config:
+                conf_kernel = conf.get('kernel') if conf.get('kernel') else kernel
+
+                install_cmd = "install -m 0644 %s/%s %s/%s" % \
+                    (bootimg_dir, conf_kernel, hdddir, conf_kernel)
+                exec_cmd(install_cmd)
+
+                label = conf.get('label')
+                title = conf.get('title') if conf.get('title') else "boot"
+                boot_conf = ""
+                boot_conf += "title %s\n" % title
+                boot_conf += "linux /%s\n" % conf_kernel
+
+                if label == "install-efi":
+                    boot_conf += "options LABEL=%s %s\n" % \
+                                    (label, bootloader.append)
+                else:
+                    boot_conf += "options LABEL=Boot root=%s %s\n" % \
+                                     (creator.rootdev, bootloader.append)
+
+                initrd = conf.get('initrd')
+                if initrd:
+                    cp_cmd = "cp %s/%s %s" % (bootimg_dir, initrd, hdddir)
+                    exec_cmd(cp_cmd, True)
+                    boot_conf += "initrd /%s\n" % initrd
+
+                logger.debug("Writing systemd-boot config "
+                             "%s/hdd/boot/loader/entries/%s.conf" % (cr_workdir, title))
+                cfg = open("%s/hdd/boot/loader/entries/%s.conf" % (cr_workdir, title), "w")
+                cfg.write(boot_conf)
+                cfg.close()
 
 
     @classmethod
@@ -221,11 +263,6 @@ class BootimgEFIPlugin(SourcePlugin):
         staging_kernel_dir = kernel_dir
 
         hdddir = "%s/hdd/boot" % cr_workdir
-
-        install_cmd = "install -m 0644 %s/bzImage %s/bzImage" % \
-            (staging_kernel_dir, hdddir)
-        exec_cmd(install_cmd)
-
 
         try:
             if source_params['loader'] == 'grub-efi':
