@@ -19,6 +19,12 @@ python build_efi_cfg() {
         bb.debug(1, "No labels, nothing to do")
         return
 
+    #remove conf file from previous build
+    files = os.listdir(s)
+    for file in files:
+        if file.endswith(".conf"):
+            os.unlink(file)
+
     cfile = d.getVar('SYSTEMD_BOOT_CFG')
     cdir = os.path.dirname(cfile)
     if not os.path.exists(cdir):
@@ -37,35 +43,44 @@ python build_efi_cfg() {
         cfgfile.write('timeout 10\n')
     cfgfile.close()
 
+    appends = d.getVar('APPENDS') if d.getVar('APPENDS') else ""
+
     for label in labels.split():
-        localdata = d.createCopy()
+        conf_count = 0
+        for apd in appends.split(';'):
+            conf_title = "%s-%s" % ( label, conf_count) if apd else label
+            localdata = d.createCopy()
 
-        entryfile = "%s/%s.conf" % (s, label)
-        if not os.path.exists(s):
-            os.makedirs(s)
-        d.appendVar("SYSTEMD_BOOT_ENTRIES", " " + entryfile)
-        try:
-            entrycfg = open(entryfile, "w")
-        except OSError:
-            bb.fatal('Unable to open %s' % entryfile)
+            entryfile = "%s/%s.conf" % (s, conf_title)
+            if not os.path.exists(s):
+                os.makedirs(s)
+            d.appendVar("SYSTEMD_BOOT_ENTRIES", " " + entryfile)
+            try:
+                entrycfg = open(entryfile, "w")
+            except OSError:
+                bb.fatal('Unable to open %s' % entryfile)
 
-        entrycfg.write('title %s\n' % label)
+            entrycfg.write('title %s %s\n' % (conf_title, apd) )
 
-        kernel = localdata.getVar("KERNEL_IMAGETYPE")
-        entrycfg.write('linux /%s\n' % kernel)
+            kernel = localdata.getVar("KERNEL_IMAGETYPE")
+            entrycfg.write('linux /%s\n' % kernel)
 
-        append = localdata.getVar('APPEND')
-        initrd = localdata.getVar('INITRD')
+            append = localdata.getVar('APPEND')
+            initrd = localdata.getVar('INITRD')
 
-        if initrd:
-            entrycfg.write('initrd /initrd\n')
-        lb = label
-        if label == "install":
-            lb = "install-efi"
-        entrycfg.write('options LABEL=%s ' % lb)
-        if append:
-            append = replace_rootfs_uuid(d, append)
-            entrycfg.write('%s' % append)
-        entrycfg.write('\n')
-        entrycfg.close()
+            if initrd:
+                entrycfg.write('initrd /initrd\n')
+            lb = label
+            if label == "install":
+                lb = "install-efi"
+            entrycfg.write('options LABEL=%s ' % lb)
+
+            ap = append + apd
+            if ap:
+                append = replace_rootfs_uuid(d, ap)
+                entrycfg.write('%s' % ap)
+
+            entrycfg.write('\n')
+            entrycfg.close()
+            conf_count += 1
 }

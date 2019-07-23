@@ -65,37 +65,39 @@ class BootimgEFIPlugin(SourcePlugin):
         if not custom_cfg:
             # Create grub configuration using parameters from wks file
             bootloader = creator.ks.bootloader
-            title = source_params.get('title')
+            title = source_params.get('title') if source_params.get('title') else "boot"
 
             grubefi_conf = ""
             grubefi_conf += "serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1\n"
             grubefi_conf += "default=boot\n"
             grubefi_conf += "timeout=%s\n" % bootloader.timeout
-            grubefi_conf += "menuentry '%s'{\n" % (title if title else "boot")
 
-            kernel = get_bitbake_var("KERNEL_IMAGETYPE")
-            if get_bitbake_var("INITRAMFS_IMAGE_BUNDLE") == "1":
-                if get_bitbake_var("INITRAMFS_IMAGE"):
-                    kernel = "%s-%s.bin" % \
-                        (get_bitbake_var("KERNEL_IMAGETYPE"), get_bitbake_var("INITRAMFS_LINK_NAME"))
+            appends = get_bitbake_var("APPENDS") if get_bitbake_var("APPENDS") else ""
+            for apd in appends.split(';'):
+                grubefi_conf += "menuentry '%s %s'{\n" % (title, apd )
 
-            label = source_params.get('label')
-            label_conf = "root=%s" % creator.rootdev
-            if label:
-                label_conf = "LABEL=%s" % label
+                kernel = get_bitbake_var("KERNEL_IMAGETYPE")
+                if get_bitbake_var("INITRAMFS_IMAGE_BUNDLE") == "1":
+                    if get_bitbake_var("INITRAMFS_IMAGE"):
+                        kernel = "%s-%s.bin" % \
+                            (get_bitbake_var("KERNEL_IMAGETYPE"), get_bitbake_var("INITRAMFS_LINK_NAME"))
 
-            grubefi_conf += "linux /%s %s rootwait %s\n" \
-                % (kernel, label_conf, bootloader.append)
+                label = source_params.get('label')
+                label_conf = "root=%s" % creator.rootdev
+                if label:
+                    label_conf = "LABEL=%s" % label
 
-            if initrd:
-                initrds = initrd.split(';')
-                grubefi_conf += "initrd"
-                for rd in initrds:
-                    grubefi_conf += " /%s" % rd
-                grubefi_conf += "\n"
+                grubefi_conf += "linux /%s %s rootwait %s %s\n" \
+                    % (kernel, label_conf, bootloader.append, apd)
 
-            grubefi_conf += "}\n"
+                if initrd:
+                    initrds = initrd.split(';')
+                    grubefi_conf += "initrd"
+                    for rd in initrds:
+                        grubefi_conf += " /%s" % rd
+                    grubefi_conf += "\n"
 
+                grubefi_conf += "}\n"
         logger.debug("Writing grubefi config %s/hdd/boot/EFI/BOOT/grub.cfg",
                      cr_workdir)
         cfg = open("%s/hdd/boot/EFI/BOOT/grub.cfg" % cr_workdir, "w")
@@ -161,30 +163,36 @@ class BootimgEFIPlugin(SourcePlugin):
                     kernel = "%s-%s.bin" % \
                         (get_bitbake_var("KERNEL_IMAGETYPE"), get_bitbake_var("INITRAMFS_LINK_NAME"))
 
-            title = source_params.get('title')
+            title = source_params.get('title') if source_params.get('title') else "boot"
+            appends = get_bitbake_var("APPENDS") if get_bitbake_var("APPENDS") else ""
+            conf_count = 0
+            for apd in appends.split(';'):
+                conf_title = "%s-%s" % ( title, conf_count) if apd else title
 
-            boot_conf = ""
-            boot_conf += "title %s\n" % (title if title else "boot")
-            boot_conf += "linux /%s\n" % kernel
+                boot_conf = ""
+                boot_conf += "title %s %s\n" % ( conf_title, apd )
+                boot_conf += "linux /%s\n" % kernel
 
-            label = source_params.get('label')
-            label_conf = "LABEL=Boot root=%s" % creator.rootdev
-            if label:
-                label_conf = "LABEL=%s" % label
+                label = source_params.get('label')
+                label_conf = "LABEL=Boot root=%s" % creator.rootdev
+                if label:
+                    label_conf = "LABEL=%s" % label
 
-            boot_conf += "options %s %s\n" % \
-                             (label_conf, bootloader.append)
+                boot_conf += "options %s %s %s\n" % \
+                                 (label_conf, bootloader.append, apd)
 
-            if initrd:
-                initrds = initrd.split(';')
-                for rd in initrds:
-                    boot_conf += "initrd /%s\n" % rd
+                if initrd:
+                    initrds = initrd.split(';')
+                    for rd in initrds:
+                        boot_conf += "initrd /%s\n" % rd
 
-        logger.debug("Writing systemd-boot config "
-                     "%s/hdd/boot/loader/entries/boot.conf", cr_workdir)
-        cfg = open("%s/hdd/boot/loader/entries/boot.conf" % cr_workdir, "w")
-        cfg.write(boot_conf)
-        cfg.close()
+                conf_count += 1
+
+                logger.debug("Writing systemd-boot config "
+                             "%s/hdd/boot/loader/entries/%s.conf" % (cr_workdir, conf_title))
+                cfg = open("%s/hdd/boot/loader/entries/%s.conf" % (cr_workdir, conf_title), "w")
+                cfg.write(boot_conf)
+                cfg.close()
 
 
     @classmethod
