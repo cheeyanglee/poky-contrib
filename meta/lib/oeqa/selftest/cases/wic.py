@@ -498,7 +498,7 @@ class Wic2(WicTestCase):
 
         wicvars = set(bb_vars['WICVARS'].split())
         # filter out optional variables
-        wicvars = wicvars.difference(('DEPLOY_DIR_IMAGE', 'IMAGE_BOOT_FILES',
+        wicvars = wicvars.difference(('DEPLOY_DIR_IMAGE', 'IMAGE_BOOT_FILES', 'MULTI_BOOT_OPTIONS',
                                       'INITRD', 'INITRD_LIVE', 'ISODIR','INITRAMFS_IMAGE',
                                       'INITRAMFS_IMAGE_BUNDLE', 'INITRAMFS_LINK_NAME'))
         with open(path) as envfile:

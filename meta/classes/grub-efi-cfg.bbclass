@@ -89,29 +89,31 @@ python build_efi_cfg() {
     for label in labels.split():
         localdata = d.createCopy()
 
+        initrd = localdata.getVar('INITRD')
+        append = localdata.getVar('APPEND')
+        multi_boot_options = localdata.getVar('MULTI_BOOT_OPTIONS') if localdata.getVar('MULTI_BOOT_OPTIONS') else ""
         for btype in btypes:
-            cfgfile.write('\nmenuentry \'%s%s\'{\n' % (label, btype[0]))
-            lb = label
-            if label == "install":
-                lb = "install-efi"
-            kernel = localdata.getVar('KERNEL_IMAGETYPE')
-            cfgfile.write('linux /%s LABEL=%s' % (kernel, lb))
+            for boot_option in multi_boot_options.split(';'):
+                cfgfile.write('\nmenuentry \'%s%s %s\'{\n' % (label, btype[0],boot_option))
+                lb = label
+                if label == "install":
+                    lb = "install-efi"
+                kernel = localdata.getVar('KERNEL_IMAGETYPE')
+                cfgfile.write('linux /%s LABEL=%s' % (kernel, lb))
 
-            cfgfile.write(' %s' % replace_rootfs_uuid(d, root))
+                cfgfile.write(' %s' % replace_rootfs_uuid(d, root))
 
-            append = localdata.getVar('APPEND')
-            initrd = localdata.getVar('INITRD')
+                apd = append + boot_option
+                if apd:
+                    apd = replace_rootfs_uuid(d, apd)
+                    cfgfile.write(' %s' % (apd))
 
-            if append:
-                append = replace_rootfs_uuid(d, append)
-                cfgfile.write(' %s' % (append))
+                cfgfile.write(' %s' % btype[1])
+                cfgfile.write('\n')
 
-            cfgfile.write(' %s' % btype[1])
-            cfgfile.write('\n')
-
-            if initrd:
-                cfgfile.write('initrd /initrd')
-            cfgfile.write('\n}\n')
+                if initrd:
+                    cfgfile.write('initrd /initrd')
+                cfgfile.write('\n}\n')
 
     cfgfile.close()
 }
