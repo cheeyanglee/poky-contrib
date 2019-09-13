@@ -216,7 +216,7 @@ class Partition():
         if not self.size and real_rootfs:
             # Use the same logic found in get_rootfs_size()
             # from meta/classes/image.bbclass
-            du_cmd = "du -ks %s" % rootfs_dir
+            du_cmd = "du -bks %s" % rootfs_dir
             out = exec_cmd(du_cmd)
             self.size = int(out.split()[0])
 
@@ -235,7 +235,7 @@ class Partition():
         """
         Prepare content for an ext2/3/4 rootfs partition.
         """
-        du_cmd = "du -ks %s" % rootfs_dir
+        du_cmd = "du -bks %s" % rootfs_dir
         out = exec_cmd(du_cmd)
         actual_rootfs_size = int(out.split()[0])
 
@@ -262,7 +262,7 @@ class Partition():
         """
         Prepare content for a btrfs rootfs partition.
         """
-        du_cmd = "du -ks %s" % rootfs_dir
+        du_cmd = "du -bks %s" % rootfs_dir
         out = exec_cmd(du_cmd)
         actual_rootfs_size = int(out.split()[0])
 
