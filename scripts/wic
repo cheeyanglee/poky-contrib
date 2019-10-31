@@ -25,6 +25,7 @@ import subprocess
 
 from collections import namedtuple
 from distutils import spawn
+from argparse import RawTextHelpFormatter
 
 # External modules
 scripts_path = os.path.dirname(os.path.realpath(__file__))
@@ -498,7 +499,7 @@ def init_parser(parser):
 
 def main(argv):
     parser = argparse.ArgumentParser(
-        description="wic version %s" % __version__)
+        description="wic version %s" % __version__ , formatter_class=RawTextHelpFormatter)
 
     init_parser(parser)
 
