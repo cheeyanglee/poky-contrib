@@ -7,4 +7,4 @@ SRC_URI = "http://www.sqlite.org/2020/sqlite-autoconf-${SQLITE_PV}.tar.gz"
 SRC_URI[sha256sum] = "106a2c48c7f75a298a7557bcc0d5f4f454e5b43811cc738b7ca294d6956bbb15"
 
 # -19242 is only an issue in specific development branch commits
-CVE_CHECK_WHITELIST += "CVE-2019-19242"
+CVE_CHECK_ALLOWLIST += "CVE-2019-19242"

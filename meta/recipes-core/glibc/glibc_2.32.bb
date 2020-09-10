@@ -1,7 +1,7 @@
 require glibc.inc
 require glibc-version.inc
 
-CVE_CHECK_WHITELIST += "CVE-2020-10029"
+CVE_CHECK_ALLOWLIST += "CVE-2020-10029"
 
 DEPENDS += "gperf-native bison-native make-native"
 
