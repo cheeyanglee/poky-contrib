@@ -21,7 +21,7 @@ UPSTREAM_CHECK_GITTAGREGEX = "(?P<pver>s\d+)"
 
 # Fixed in 2000-10-10, but the versioning of iputils
 # breaks the version order.
-CVE_CHECK_WHITELIST += "CVE-2000-1213 CVE-2000-1214"
+CVE_CHECK_SAFELIST += "CVE-2000-1213 CVE-2000-1214"
 
 PACKAGECONFIG ??= "libcap rarpd \
                    ${@bb.utils.contains('DISTRO_FEATURES', 'ipv6', 'ninfod traceroute6', '', d)} \

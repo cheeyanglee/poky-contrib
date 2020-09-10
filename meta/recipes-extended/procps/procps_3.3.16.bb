@@ -73,4 +73,4 @@ python __anonymous() {
 
 # 'ps' isn't suitable for use as a security tool so whitelist this CVE.
 # https://bugzilla.redhat.com/show_bug.cgi?id=1575473#c3
-CVE_CHECK_WHITELIST += "CVE-2018-1121"
+CVE_CHECK_SAFELIST += "CVE-2018-1121"

@@ -40,4 +40,4 @@ do_install_append() {
 
 # This can't be replicated and is just a memory leak.
 # https://github.com/erikd/libsndfile/issues/398
-CVE_CHECK_WHITELIST += "CVE-2018-13419"
+CVE_CHECK_SAFELIST += "CVE-2018-13419"
