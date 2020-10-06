@@ -15,4 +15,7 @@ do_install_append() {
     mv ${D}${bindir}/cython ${D}${bindir}/cython3
     mv ${D}${bindir}/cythonize ${D}${bindir}/cythonize3
     mv ${D}${bindir}/cygdb ${D}${bindir}/cygdb3
+
+    # remove WORKDIR info from SOURCES.txt to improve reproducibility
+    sed -i 's#${WORKDIR}#/#g' ${D}${PYTHON_SITEPACKAGES_DIR}/Cython-*-info/SOURCES.txt
 }
