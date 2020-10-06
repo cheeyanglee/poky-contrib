@@ -10,9 +10,18 @@ RDEPENDS_${PN} += "\
 # architecture.
 DISTUTILS_INSTALL_ARGS += "--skip-build"
 
+do_compile_append() {
+    # these .c code are generate and compile at same steps, remove WORKDIR  
+    # info from generated .c code to improve -src package reproducibility
+    sed -i 's#${WORKDIR}##g' ${S}/Cython/*/*.c
+}
+
 do_install_append() {
     # rename scripts that would conflict with the Python 2 build of Cython
     mv ${D}${bindir}/cython ${D}${bindir}/cython3
     mv ${D}${bindir}/cythonize ${D}${bindir}/cythonize3
     mv ${D}${bindir}/cygdb ${D}${bindir}/cygdb3
+
+    # remove WORKDIR info from SOURCES to improve reproducibility
+    sed -i 's#${WORKDIR}#/#g' ${D}${PYTHON_SITEPACKAGES_DIR}/Cython-*-info/SOURCES.txt
 }
