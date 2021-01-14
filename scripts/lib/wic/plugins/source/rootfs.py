@@ -63,10 +63,19 @@ class RootfsPlugin(SourcePlugin):
 
     @staticmethod
     def __get_pseudo(native_sysroot, rootfs, pseudo_dir):
+        ignore_paths = [rootfs] + (get_bitbake_var("PSEUDO_IGNORE_PATHS") or "").split(",")
+        canonical_paths = []
+        for path in ignore_paths:
+            if "$" not in path:
+                trailing_slash = path.endswith("/") and "/" or ""
+                canonical_paths.append(os.path.realpath(path) + trailing_slash)
+        ignore_paths = ",".join(canonical_paths)
+
         pseudo = "export PSEUDO_PREFIX=%s/usr;" % native_sysroot
         pseudo += "export PSEUDO_LOCALSTATEDIR=%s;" % pseudo_dir
         pseudo += "export PSEUDO_PASSWD=%s;" % rootfs
         pseudo += "export PSEUDO_NOSYMLINKEXP=1;"
+        pseudo += "export PSEUDO_IGNORE_PATHS=%s;" % ignore_paths
         pseudo += "%s " % get_bitbake_var("FAKEROOTCMD")
         return pseudo
 
