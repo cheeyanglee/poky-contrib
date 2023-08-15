@@ -26,7 +26,6 @@ SRC_URI = "https://download.qemu.org/${BPN}-${PV}.tar.xz \
            file://0007-qemu-Determinism-fixes.patch \
            file://0008-tests-meson.build-use-relative-path-to-refer-to-file.patch \
            file://0009-Define-MAP_SYNC-and-MAP_SHARED_VALIDATE-on-needed-li.patch \
-           file://0010-hw-pvrdma-Protect-against-buggy-or-malicious-guest-d.patch \
            file://0001-contrib-vhost-user-blk-Replace-lseek64-with-lseek.patch \
            file://0002-linux-user-Replace-use-of-lfs64-related-functions-an.patch \
            file://0001-configure-Fix-check-tcg-not-executing-any-tests.patch \
@@ -36,11 +35,10 @@ SRC_URI = "https://download.qemu.org/${BPN}-${PV}.tar.xz \
            file://qemu-guest-agent.init \
            file://qemu-guest-agent.udev \
            file://ppc.patch \
-	   file://CVE-2023-0330.patch \
            "
 UPSTREAM_CHECK_REGEX = "qemu-(?P<pver>\d+(\.\d+)+)\.tar"
 
-SRC_URI[sha256sum] = "5b49ce2687744dad494ae90a898c52204a3406e84d072482a1e1be854eeb2157"
+SRC_URI[sha256sum] = "172042aa37609240130fe03f5925001e717d74dbd0799adf15b15dc038aef9d1"
 
 SRC_URI:append:class-target = " file://cross.patch"
 SRC_URI:append:class-nativesdk = " file://cross.patch"
